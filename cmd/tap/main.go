@@ -3,24 +3,54 @@ package main
 import (
 	"bytes"
 	"context"
-	"flag"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
-	"time"
 
+	"github.com/alecthomas/kingpin/v2"
+	"github.com/broothie/tap"
 	"golang.org/x/sync/errgroup"
 )
 
+const version = "v0.1.0"
+
+//go:embed help.txt
+var help string
+
 func main() {
-	timeout := flag.Duration("timeout", 5*time.Second, "Command timeout")
-	fileModeFlag := flag.String("mode", "0666", "File mode")
-	dirModeFlag := flag.String("mode", "0777", "Directory mode")
-	flag.Parse()
+	cli := kingpin.New("tap", help)
+	cli.Version(version)
+	cli.HelpFlag.Short('h')
+
+	paths := cli.
+		Arg("paths", "Paths of files or directories to create.").
+		Required().
+		Strings()
+
+	timeout := cli.
+		Flag("timeout", "Command timeout.").
+		Default("5s").
+		Duration()
+
+	fileModeFlag := cli.
+		Flag("file-mode", "Mode to use for created files.").
+		Short('f').
+		Default(strconv.Itoa(int(tap.DefaultFileMode))).
+		String()
+
+	dirModeFlag := cli.
+		Flag("dir-mode", "Mode to use for created directories.").
+		Short('d').
+		Default(strconv.Itoa(int(tap.DefaultDirMode))).
+		String()
+
+	if _, err := cli.Parse(os.Args[1:]); err != nil {
+		fmt.Println("error:", err)
+		os.Exit(1)
+	}
 
 	fileMode, err := strconv.ParseUint(*fileModeFlag, 8, 32)
 	if err != nil {
@@ -40,7 +70,7 @@ func main() {
 	ctx, cancel = context.WithTimeout(ctx, *timeout)
 	defer cancel()
 
-	if err := run(ctx, flag.Args(), os.Stdin, os.FileMode(fileMode), os.FileMode(dirMode)); err != nil {
+	if err := run(ctx, *paths, os.Stdin, os.FileMode(fileMode), os.FileMode(dirMode)); err != nil {
 		fmt.Println("error:", err)
 		os.Exit(1)
 	}
@@ -66,18 +96,16 @@ func run(ctx context.Context, args []string, input *os.File, fileMode, dirMode o
 		}
 
 		group.Go(func() error {
-			if err := os.MkdirAll(filepath.Dir(path), dirMode); err != nil {
-				return fmt.Errorf("creating directory: %w", err)
+			if err := tap.Tap(
+				path,
+				tap.Content(content.Bytes()),
+				tap.FileMode(fileMode),
+				tap.DirMode(dirMode),
+			); err != nil {
+				return err
 			}
 
-			if strings.HasSuffix(path, string(os.PathSeparator)) {
-				return nil
-			}
-
-			if err := os.WriteFile(path, content.Bytes(), fileMode); err != nil {
-				return fmt.Errorf("creating directory: %w", err)
-			}
-
+			fmt.Println("tap", path)
 			return nil
 		})
 	}

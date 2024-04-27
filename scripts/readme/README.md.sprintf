@@ -1,0 +1,13 @@
+# `tap`
+
+## Installation
+
+```
+go install github.com/broothie/tap/cmd/tap@latest
+```
+
+## Usage
+
+```
+%s
+```
