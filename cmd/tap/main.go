@@ -15,14 +15,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const version = "v0.1.0"
-
 //go:embed help.txt
 var help string
 
 func main() {
 	cli := kingpin.New("tap", help)
-	cli.Version(version)
+	cli.Version(tap.Version())
 	cli.HelpFlag.Short('h')
 
 	paths := cli.

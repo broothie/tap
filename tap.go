@@ -1,6 +1,7 @@
 package tap
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,13 @@ import (
 
 	"github.com/broothie/option"
 )
+
+//go:embed VERSION
+var version string
+
+func Version() string {
+	return strings.TrimSpace(version)
+}
 
 func Tap(path string, options ...option.Option[Options]) error {
 	if strings.HasSuffix(path, string(os.PathSeparator)) {
