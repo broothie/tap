@@ -1,0 +1,7 @@
+Given a path, tap creates the file or directory at the given path, along with any nonexistent directories in the path.
+
+Example usage:
+  $ tap file.txt                        # Creates 'file.txt'.
+  $ tap path/to/file.txt                # Creates dirs 'path/', 'path/to/', and file 'path/to/file.txt'.
+  $ tap path/to/dir/                    # Creates dirs 'path/', 'path/to/', and 'path/to/dir/'.
+  $ echo "Hello, World!" | tap file.txt # Creates 'file.txt' and writes stdin to it.

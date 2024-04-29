@@ -1,23 +1,21 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"os"
-	"os/exec"
 	"strings"
 	"text/template"
+
+	"github.com/broothie/tap/internal/cli"
 )
 
-//go:embed README.md.sprintf
+//go:embed README.md.tmpl
 var readmeFormat string
 
 func main() {
-	cmd := exec.Command("tap", "-h")
-
-	usage, err := cmd.CombinedOutput()
-	if err != nil {
-		panic(err)
-	}
+	var usage bytes.Buffer
+	cli.New().UsageWriter(&usage).Usage(nil)
 
 	tmpl, err := template.New("").Parse(readmeFormat)
 	if err != nil {
@@ -35,7 +33,7 @@ func main() {
 		}
 	}()
 
-	if err := tmpl.Execute(readme, map[string]string{"usage": strings.TrimSpace(string(usage))}); err != nil {
+	if err := tmpl.Execute(readme, map[string]string{"usage": strings.TrimSpace(usage.String())}); err != nil {
 		panic(err)
 	}
 }
